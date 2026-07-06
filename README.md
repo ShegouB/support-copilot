@@ -1,4 +1,4 @@
-# 🤖 Customer Support & Technical Escalation Co-pilot
+# Customer Support & Technical Escalation Co-pilot
 
 > **Kaggle 5-Day AI Agents Capstone Project** | Track: **Agents for Business**  
 > 🔗 [github.com/ShegouB/support-copilot](https://github.com/ShegouB/support-copilot)
@@ -137,7 +137,7 @@ You: My name is Alice (alice@example.com). I'm getting a 403 error on Cloud Run.
 
 🛡️ [PII Masked] Input sanitized to: "My name is Alice ([EMAIL_MASKED])..."
 
-Agent: ✅ Ticket #3 created.
+Agent: Ticket #3 created.
   Category: Bug | Severity: high | Status: open
 ```
 
@@ -159,12 +159,12 @@ Agent: Based on the official ADK documentation (adk.dev/tools/...):
 You: Please escalate ticket 1 to JIRA.
 
 ==================================================
-🚨 SECURITY GUARDRAIL: HUMAN-IN-THE-LOOP APPROVAL REQUIRED
+SECURITY GUARDRAIL: HUMAN-IN-THE-LOOP APPROVAL REQUIRED
   - Ticket ID: 1
   - Summary: Database connection timeout
 Approve JIRA creation? (y/N): y
 
-✅ Escalation approved.
+Escalation approved.
 Agent: JIRA issue ENG-101 created and linked to Ticket #1.
 ```
 
@@ -197,7 +197,7 @@ adk deploy cloud_run \
   ./app
 ```
 
-> 🔒 **Security note**: Never embed API keys in the Docker image. Always inject them at deploy time via `--set-env-vars` or Cloud Run Secret Manager integration.
+> **Security note**: Never embed API keys in the Docker image. Always inject them at deploy time via `--set-env-vars` or Cloud Run Secret Manager integration.
 
 ---
 
