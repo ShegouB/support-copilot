@@ -1,6 +1,7 @@
 import os
 import pytest
 import json
+from app.agent import route_query, retriever_agent, triage_agent, escalation_agent
 from app.security import mask_pii, sanitize_input
 from app.mcp_server import load_db, save_db, list_tickets, add_ticket, escalate_ticket, create_jira_issue
 
@@ -26,6 +27,17 @@ def test_sanitize_input():
     with pytest.raises(ValueError) as excinfo:
         sanitize_input(unsafe_text)
     assert "Security Alert" in str(excinfo.value)
+
+def test_route_query_for_technical_questions():
+    assert route_query("How do I deploy this on Cloud Run?") is retriever_agent
+
+
+def test_route_query_for_ticket_creation():
+    assert route_query("My app is failing with a 403 error") is triage_agent
+
+
+def test_route_query_for_escalation_requests():
+    assert route_query("Please escalate ticket 42 to the backlog") is escalation_agent
 
 # Test custom MCP tools directly
 def test_mcp_tools():

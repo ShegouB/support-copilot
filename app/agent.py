@@ -26,17 +26,24 @@ from app.config import DEFAULT_MODEL, REQUIRE_HUMAN_APPROVAL
 # Custom Ticketing MCP Toolset (stdio subprocess)
 # Exposes: list_tickets, add_ticket, escalate_ticket, create_jira_issue
 # ---------------------------------------------------------------------------
-current_dir = os.path.dirname(os.path.abspath(__file__))
-mcp_server_script = os.path.join(current_dir, "mcp_server.py")
+def get_mcp_toolset():
+    """Construct and return a McpToolset instance.
 
-custom_mcp_toolset = McpToolset(
-    connection_params=StdioConnectionParams(
-        server_params=StdioServerParameters(
-            command="python3",
-            args=[mcp_server_script]
+    This is intentionally lazy-created to avoid registering Function Calling
+    tools globally at import time. Creating the toolset only when needed
+    prevents mixing built-in tools (google_search) with Function Calling
+    in the same LLM request.
+    """
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    mcp_server_script = os.path.join(current_dir, "mcp_server.py")
+    return McpToolset(
+        connection_params=StdioConnectionParams(
+            server_params=StdioServerParameters(
+                command="python3",
+                args=[mcp_server_script]
+            )
         )
     )
-)
 
 # ---------------------------------------------------------------------------
 # Security Callbacks
@@ -70,6 +77,19 @@ def human_in_the_loop_callback(tool, args, tool_context):
         print("✅ Escalation approved. Executing tool...")
     return None
 
+
+def route_query(query: str):
+    """Choose the specialist agent that matches the user's request."""
+    normalized = query.lower()
+
+    if any(keyword in normalized for keyword in ["escalate", "jira", "backlog", "engineering", "create issue"]):
+        return escalation_agent
+
+    if any(keyword in normalized for keyword in ["how do i", "how to", "what is", "why", "can you explain", "deploy", "configure", "api", "mcp", "adk", "gemini", "documentation", "best practice"]):
+        return retriever_agent
+
+    return triage_agent
+
 # ---------------------------------------------------------------------------
 # Sub-Agent: Triage Agent
 # Uses the custom MCP ticketing server to create, list, and manage tickets.
@@ -90,7 +110,7 @@ triage_agent = Agent(
         "4. Reply with the full ticket details including the assigned ID.\n"
         "Always be concise and professional."
     ),
-    tools=[custom_mcp_toolset],
+    tools=[],
 )
 
 # ---------------------------------------------------------------------------
@@ -142,7 +162,7 @@ escalation_agent = Agent(
         "4. You can also call 'list_tickets' to find ticket details if the user "
         "   references a ticket by description rather than ID."
     ),
-    tools=[custom_mcp_toolset],
+    tools=[],
     before_tool_callback=human_in_the_loop_callback,
 )
 
@@ -150,20 +170,28 @@ escalation_agent = Agent(
 # Root Orchestrator Agent: Support Coordinator
 # Routes all incoming user requests to the appropriate specialist sub-agent.
 # ---------------------------------------------------------------------------
-root_agent = Agent(
-    model=DEFAULT_MODEL,
-    name="support_coordinator",
-    description="The main support team coordinator. Triages new requests and delegates tasks to specialist agents.",
-    instruction=(
-        "You are the Support Coordinator Agent. You lead a team of support specialists:\n"
-        "  - 'triage_agent': Classifies and files new support tickets.\n"
-        "  - 'retriever_agent': Answers technical and API questions using real-time search.\n"
-        "  - 'escalation_agent': Escalates tickets and creates JIRA engineering issues.\n\n"
-        "Routing rules:\n"
-        "1. New customer issue or complaint → delegate to 'triage_agent'.\n"
-        "2. Technical question (how-to, API, deployment, debugging) → delegate to 'retriever_agent'.\n"
-        "3. Request to escalate a ticket or create a JIRA issue → delegate to 'escalation_agent'.\n\n"
-        "Always delegate to the appropriate sub-agent. Do not answer technical questions directly."
-    ),
-    sub_agents=[triage_agent, retriever_agent, escalation_agent],
-)
+def get_root_agent():
+    """Factory creating the Support Coordinator root agent.
+
+    Creating the root agent lazily avoids registering all sub-agents/tools at
+    import time, which can inadvertently expose Function Calling declarations
+    alongside built-in tools. Call this function only when a coordinated
+    root agent is required.
+    """
+    return Agent(
+        model=DEFAULT_MODEL,
+        name="support_coordinator",
+        description="The main support team coordinator. Triages new requests and delegates tasks to specialist agents.",
+        instruction=(
+            "You are the Support Coordinator Agent. You lead a team of support specialists:\n"
+            "  - 'triage_agent': Classifies and files new support tickets.\n"
+            "  - 'retriever_agent': Answers technical and API questions using real-time search.\n"
+            "  - 'escalation_agent': Escalates tickets and creates JIRA engineering issues.\n\n"
+            "Routing rules:\n"
+            "1. New customer issue or complaint → delegate to 'triage_agent'.\n"
+            "2. Technical question (how-to, API, deployment, debugging) → delegate to 'retriever_agent'.\n"
+            "3. Request to escalate a ticket or create a JIRA issue → delegate to 'escalation_agent'.\n\n"
+            "Always delegate to the appropriate sub-agent. Do not answer technical questions directly."
+        ),
+        sub_agents=[triage_agent, retriever_agent, escalation_agent],
+    )
