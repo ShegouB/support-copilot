@@ -1,0 +1,14 @@
+**/__pycache__
+**/*.pyc
+**/*.pyo
+.env
+*.env.local
+tickets.json
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+*.log
+.idea/
+.vscode/
