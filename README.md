@@ -1,6 +1,7 @@
 # 🤖 Customer Support & Technical Escalation Co-pilot
 
-> **Kaggle 5-Day AI Agents Capstone Project** | Track: **Agents for Business**
+> **Kaggle 5-Day AI Agents Capstone Project** | Track: **Agents for Business**  
+> 🔗 [github.com/ShegouB/support-copilot](https://github.com/ShegouB/support-copilot)
 
 An enterprise-grade, AI-powered customer support co-pilot that automates ticket triage, grounded technical Q&A, and engineering escalation — built with **Google Agent Development Kit (ADK)**, a custom **FastMCP stdio server**, and real-time **Google Search grounding**.
 
